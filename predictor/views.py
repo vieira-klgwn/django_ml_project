@@ -2,14 +2,14 @@ import pandas as pd
 from django.shortcuts import render
 from predictor.data_exploration import dataset_exploration, data_exploration, generate_rwanda_map
 import joblib
-from model_generators.clustering.train_cluster import evaluate_clustering_model
+from model_generators.clustering.train_cluster import evaluate_clustering_model, predict_cluster_id
 from model_generators.classification.train_classifier import evaluate_classification_model 
 from model_generators.regression.train_regression import evaluate_regression_model
 
 # Load models once
 regression_model = joblib.load("model_generators/regression/regression_model.pkl")
 classification_model = joblib.load("model_generators/classification/classification_model.pkl") 
-clustering_model = joblib.load("model_generators/clustering/clustering_model.pkl")
+clustering_bundle = joblib.load("model_generators/clustering/clustering_model.pkl")
 
 def data_exploration_view(request):
     df = pd.read_csv("dummy-data/vehicles_ml_dataset.csv")
@@ -67,14 +67,9 @@ def clustering_analysis(request):
             # Step 1: Predict price
             predicted_price = regression_model.predict([[year, km, seats, income]])[0]
             # Step 2: Predict cluster
-            cluster_id = clustering_model.predict([[income, predicted_price]])[0]
-            mapping = {
-                0: "Economy",
-                1: "Standard",
-                2: "Premium"
-            }
+            prediction_label = predict_cluster_id(clustering_bundle, income, predicted_price)
             context.update({
-                "prediction": mapping.get(cluster_id, "Unknown"),
+                "prediction": prediction_label,
                 "price": predicted_price
             })
         except Exception as e:
